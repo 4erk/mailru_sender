@@ -12,17 +12,16 @@ namespace app;
 use app\Parsers\ParserCompose;
 use app\Parsers\ParserSuccessAuth;
 use app\Parsers\ParserToken;
-use Guzzle\Http\Client;
-use Guzzle\Plugin\Cookie\CookieJar\ArrayCookieJar;
-use Guzzle\Plugin\Cookie\CookiePlugin;
-use Guzzle\Plugin\History\HistoryPlugin;
-use function rand;
+use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Exception\GuzzleException;
+
 
 class Mailer
 {
 	const URL_LOGIN = 'https://mail.ru/';
 	const URL_AUTH = 'https://auth.mail.ru/cgi-bin/auth';
-	const URL_COMPOSE = 'https://m.mail.ru/compose/';
+	const URL_COMPOSE = 'https://e.mail.ru/compose/';
 	const URL_API = 'https://e.mail.ru/api/v1';
 	const URL_API_SEND = 'https://e.mail.ru/api/v1/messages/send';
 	
@@ -35,25 +34,13 @@ class Mailer
 	
 	public function __construct()
 	{
-		$this->client = new Client();
-		$this->history = new HistoryPlugin();
-		$this->cookie  = new CookiePlugin(new ArrayCookieJar());
-		$this->client->addSubscriber($this->history);
-		$this->client->addSubscriber($this->cookie);
-	}
-	
-	public function getHistoryUrl()
-	{
-		$url = [];
-		foreach ($this->history->getAll() as $item) {
-			$url[] = $item['request']->getUrl();
-		}
-		return $url;
+		$this->cookie = new CookieJar();
+		$this->client = new Client(['cookies' => $this->cookie]);
 	}
 	
 	public function auth($login, $pass)
 	{
-		$response = $this->request(self::URL_LOGIN);
+		$response = $this->get(self::URL_LOGIN);
 		$raw      = $response->getBody();
 		$parser   = new ParserToken($raw);
 		$token    = $parser->getResult();
@@ -74,48 +61,95 @@ class Mailer
 		$data['Password'] = $pass;
 		$data['Domain']   = $login[1];
 		
-		$response = $this->request(self::URL_AUTH, 'post', $data);
+		$response = $this->post(self::URL_AUTH, $data);
 		$raw      = $response->getBody();
 		$parser   = new ParserSuccessAuth($raw);
 		$result   = $parser->getResult();
 		return $this->isAuth = $this->login == $result;
 	}
 	
-	public function request(string $url, string $type = 'get', array $data = [], array $headers = [], array $options = [])
-	{
-		switch ($type) {
-			case 'post':
-				$request = $this->client->post($url, $headers, $data, $options);
-				break;
-			case 'get':
-			default:
-				$request = $this->client->get($url, $headers, $options);
-		}
-		$response = $request->send();
-		return $response;
-	}
 	
-	public function sendMessage(Message $msg) {
+	public function sendMessage(Message $msg)
+	{
 		$params = $this->getMsgParams();
 		$msg->setParams($params);
-		$data = $msg->getData();
-		$response = $this->request(self::URL_API_SEND.'?logid='.$params['logid'], 'post', $data);
-		$raw = $response->getBody();
+		$data     = $msg->getData();
+		$response = $this->post(self::URL_API_SEND . '?logid=' . $params['logid'], $data);
+		$raw      = $response->getBody();
 		echo $raw;
 	}
 	
-	public function getMsgParams() {
-		$response = $this->request(self::URL_COMPOSE.'?'.mtime());
-		$raw = $response->getBody();
-		$parser = new ParserCompose($raw);
-		$data = $parser->getResult();
-		$data['tab-time'] = time()-rand(2000,10000);
-		$data['logid'] = mtime(1).genStr(10,0,1);
-		$data['id'] = genStr(1,0,0,1).genStr(31,1,1,1);
-		$data['email'] = $this->login;
+	public function getMsgParams()
+	{
+		$response = $this->get(self::URL_COMPOSE . '?' . mtime());
+		$raw      = $response->getBody();
+		$parser           = new ParserCompose($raw);
+		$data             = $parser->getResult();
+		$data['tab-time'] = time() - rand(2000, 10000);
+		$data['logid']    = mtime(1) . genStr(10, 0, 1);
+		$data['id']       = genStr(1, 0, 0, 1) . genStr(31, 1, 1, 1);
+		$data['email']    = $this->login;
 		return $data;
 	}
 	
+	
+	private function get(string $url, array $data = [], array $headers = [])
+	{
+		try {
+			$response = $this->client->request('GET', $url, [
+				'query'   => $data,
+				'headers' => $headers,
+			]);
+			return $response;
+		} catch (GuzzleException $e) {
+			$this->errors[] = $e->getMessage();
+			return false;
+		}
+	}
+	
+	private function post(string $url, array $data = [], array $headers = [])
+	{
+		try {
+			$response = $this->client->request('POST', $url, [
+				'form_params' => $data,
+				'headers'     => $headers,
+			]);
+			return $response;
+		} catch (GuzzleException $e) {
+			$this->errors[] = $e->getMessage();
+			return false;
+		}
+	}
+	
+	private function files(string $url, array $data = [], array $files = [], array $headers = [])
+	{
+		$multipart = [];
+		foreach ($data as $k => $v) {
+			$multipart = [
+				'name'     => $k,
+				'contents' => $v,
+			];
+		}
+		foreach ($files as $k => $v) {
+			if (file_exists($v)) {
+				$multipart = [
+					'name'     => $k,
+					'contents' => fopen($v, 'r'),
+					'filename' => pathinfo($v, PATHINFO_FILENAME),
+				];
+			}
+		}
+		try {
+			$response = $this->client->request('POST', $url, [
+				'multipart' => $multipart,
+				'headers'   => $headers,
+			]);
+			return $response;
+		} catch (GuzzleException $e) {
+			$this->errors[] = $e->getMessage();
+			return false;
+		}
+	}
 	
 	
 }
