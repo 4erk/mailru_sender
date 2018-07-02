@@ -15,7 +15,7 @@ use function json_encode;
 class Message
 {
 	private $attributes = [
-		'__urlp'          => '/messages/send/?logid=$logid',
+//		'__urlp'          => '/messages/send/?logid=$logid',
 		'ajax_call'       => 1,
 		'x-email'         => '',
 		'tarball'         => '',
@@ -94,7 +94,7 @@ class Message
 	
 	private function applyParams()
 	{
-		$this->attributes['__urlp']               = str_replace('$logid', $this->params['logid'], $this->attributes['__urlp']);
+//		$this->attributes['__urlp']               = str_replace('$logid', $this->params['logid'], $this->attributes['__urlp']);
 		$this->attributes['tarball']               = $this->params['tarball'];
 		$this->attributes['tab-time']             = $this->params['tab-time'];
 		$this->attributes['id']                   = $this->params['id'];

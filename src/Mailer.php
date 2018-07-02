@@ -74,24 +74,38 @@ class Mailer
 		$params = $this->getMsgParams();
 		$msg->setParams($params);
 		$data     = $msg->getData();
-		$response = $this->post(self::URL_API_SEND . '?logid=' . $params['logid'], $data);
+		$response = $this->post(self::URL_API_SEND.'?logid='.mtime(1).genStr(10,0,1), $data, [
+			'X-Requested-Id' => genStr(32,1,1),
+			'X-Requested-With' => 'XMLHttpRequest',
+		]);
 		$raw      = $response->getBody();
 		echo $raw;
 	}
 	
-	public function getMsgParams()
+	
+	
+	/**************************************************************************************************/
+	/**************************************************************************************************/
+	/**************************************************************************************************/
+	/***********************                                                    ***********************/
+	/***********************                     PRIVATES                       ***********************/
+	/***********************                                                    ***********************/
+	/**************************************************************************************************/
+	/**************************************************************************************************/
+	/**************************************************************************************************/
+	
+	private function getMsgParams()
 	{
-		$response = $this->get(self::URL_COMPOSE . '?' . mtime());
-		$raw      = $response->getBody();
+		$response         = $this->get(self::URL_COMPOSE . '?' . mtime());
+		$raw              = $response->getBody();
 		$parser           = new ParserCompose($raw);
 		$data             = $parser->getResult();
 		$data['tab-time'] = time() - rand(2000, 10000);
 		$data['logid']    = mtime(1) . genStr(10, 0, 1);
-		$data['id']       = genStr(1, 0, 0, 1) . genStr(31, 1, 1, 1);
+		$data['id']       = genStr(31, 1, 1, 1);
 		$data['email']    = $this->login;
 		return $data;
 	}
-	
 	
 	private function get(string $url, array $data = [], array $headers = [])
 	{
