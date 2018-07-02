@@ -1,0 +1,13 @@
+{
+    "require": {
+        "guzzle/guzzle": "v3.9.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "app\\": "src/"
+        },
+        "files": [
+            "src/helpers.php"
+        ]
+    }
+}
