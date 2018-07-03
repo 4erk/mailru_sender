@@ -18,6 +18,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use function array_key_exists;
 use function http_build_query;
 use function json_decode;
+use function sizeof;
 use const PATHINFO_BASENAME;
 
 
@@ -41,9 +42,10 @@ class Mailer
 	
 	public function __construct($login, $pass)
 	{
-		$this->cookie = new FileCookieJar($login.md5($login.':'.$pass).'.cookie');
+		$this->cookie = new FileCookieJar(__DIR__ . '/../cookie/'. $login.md5($login.':'.$pass).'.cookie');
 		$this->client = new Client(['cookies' => $this->cookie]);
-		if (!$this->checkAuth()) {
+
+		if ($this->checkAuth()==false) {
 			$this->addLog('New Auth', [$login,$pass]);
 			$this->auth($login,$pass);
 		}
@@ -116,13 +118,17 @@ class Mailer
 				'X-Requested-With' => 'XMLHttpRequest',
 			]);
 			$raw = $response->getBody();
-			$this->addLog('Send message',['data'=>$data,'result'=>$raw]);
+			$this->addLog('Send message',['data'=>$data,'result'=>(string) $raw]);
 			$result = json_decode($raw, true);
 			if (!$result || !array_key_exists('status', $result) || $result['status']!==200) {
 				$this->errors[] = 'Send message failed';
 			}
 		}
 		return $this;
+	}
+	
+	public function hasErrors() {
+		return sizeof($this->errors) > 0;
 	}
 	
 	
@@ -156,10 +162,10 @@ class Mailer
 		$queryraw = http_build_query($query);
 		$response = $this->files(self::URL_API_ADDFILE.'?'.$queryraw,$data,['file'=>$file->getFile()]);
 		$raw = $response->getBody();
-		$this->addLog('Send message',['data'=>$data,'result'=>$raw,'query'=>$query]);
+		$this->addLog('Add File',['data'=>$data,'result'=>(string) $raw,'query'=>$query]);
 		$result = json_decode($raw, true);
 		if (!$result || !array_key_exists('status', $result) || $result['status']!==200) {
-			$this->errors[] = 'Send message failed';
+			$this->errors[] = 'Add file failed';
 		}
 		return $result;
 	}
