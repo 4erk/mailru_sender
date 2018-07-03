@@ -126,7 +126,7 @@ class Message
 	private function replaceImageTag($html, $name, $data)
 	{
 		$replace = '<img id="' . genStr(22, 1, 1, 1) . '" alt="" style="" src="cid:' . $data['content_id'] . '">';
-		$needle  = '$image[' . $name . ']';
+		$needle  = '{$' . $name . '}';
 		$html    = str_replace($needle, $replace, $html);
 		return $html;
 	}
