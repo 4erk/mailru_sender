@@ -1,0 +1,28 @@
+{
+  "body": {
+    "space_left": 25974106,
+    "attach": {
+      "content_type": "image/png",
+      "name": "fds.PNG",
+      "thumbnails": {
+        "image": {
+          "original": "https://mlattach.datacloudmail.ru/loader/2D3D9D3A4300767391C2D9B53A1A34D158D6ADCE?attach_id=i1kKS5h64cz8e09B&expires=1530584999&from=e.mail.ru&m=37x9LkFgRPXSYkUPamxgVw"
+        }
+      },
+      "id": "i1kKS5h64cz8e09B",
+      "size": 240294
+    }
+  },
+  "email": "test4send@mail.ru",
+  "status": 200,
+  "htmlencoded": false
+},
+
+{
+  "list": [
+    {
+      "id": "i1kKS5h64cz8e09B",
+      "type": "attach"
+    }
+  ]
+}

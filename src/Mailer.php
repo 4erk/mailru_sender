@@ -15,6 +15,9 @@ use app\Parsers\ParserToken;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\GuzzleException;
+use function http_build_query;
+use function print_r;
+use const PATHINFO_BASENAME;
 
 
 class Mailer
@@ -24,6 +27,7 @@ class Mailer
 	const URL_COMPOSE = 'https://e.mail.ru/compose/';
 	const URL_API = 'https://e.mail.ru/api/v1';
 	const URL_API_SEND = 'https://e.mail.ru/api/v1/messages/send';
+	const URL_API_ADDFILE = 'https://e.mail.ru/api/v1/messages/attaches/add';
 	
 	public $client;
 	public $cookie;
@@ -73,7 +77,13 @@ class Mailer
 	{
 		$params = $this->getMsgParams();
 		$msg->setParams($params);
+		
+		foreach ($msg->getFiles() as $file) {
+			$data = $this->attachFile($file);
+			if ($data) $file->setAttachData($data);
+		}
 		$data     = $msg->getData();
+		print_r($data);
 		$response = $this->post(self::URL_API_SEND.'?logid='.mtime(1).genStr(10,0,1), $data, [
 			'X-Requested-Id' => genStr(32,1,1),
 			'X-Requested-With' => 'XMLHttpRequest',
@@ -105,6 +115,16 @@ class Mailer
 		$data['id']       = genStr(31, 1, 1, 1);
 		$data['email']    = $this->login;
 		return $data;
+	}
+	
+	private function attachFile(File $file) {
+		$data = $file->getData();
+		$query = $file->queryParams();
+		$query = http_build_query($query);
+		$response = $this->files(self::URL_API_ADDFILE.'?'.$query,$data,['file'=>$file->getFile()]);
+		$raw = $response->getBody();
+		$result = json_decode($raw, true);
+		return $result;
 	}
 	
 	private function get(string $url, array $data = [], array $headers = [])
@@ -139,17 +159,17 @@ class Mailer
 	{
 		$multipart = [];
 		foreach ($data as $k => $v) {
-			$multipart = [
+			$multipart[] = [
 				'name'     => $k,
 				'contents' => $v,
 			];
 		}
 		foreach ($files as $k => $v) {
 			if (file_exists($v)) {
-				$multipart = [
+				$multipart[] = [
 					'name'     => $k,
 					'contents' => fopen($v, 'r'),
-					'filename' => pathinfo($v, PATHINFO_FILENAME),
+					'filename' => pathinfo($v, PATHINFO_BASENAME),
 				];
 			}
 		}

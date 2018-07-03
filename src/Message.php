@@ -8,9 +8,12 @@
 
 namespace app;
 
+use Error;
+use function array_key_exists;
 use function explode;
 use function in_array;
 use function json_encode;
+use function str_replace;
 
 class Message
 {
@@ -61,7 +64,7 @@ class Message
 	];
 	private $params = [
 		'logid'    => '',
-		'tarball'   => '',
+		'tarball'  => '',
 		'tab-time' => 0,
 		'id'       => '',
 		'token'    => '',
@@ -71,6 +74,9 @@ class Message
 		'body'     => '',
 	];
 	private $data = [];
+	
+	/* @var $files File[] */
+	private $files = [];
 	
 	public function __construct(array $params = [])
 	{
@@ -82,20 +88,15 @@ class Message
 		foreach ($this->params as $k => $v) {
 			if (array_key_exists($k, $params)) $this->params[$k] = $params[$k];
 		}
+		$this->applyParams();
 		return $this;
 	}
 	
-	public function getData()
-	{
-		$this->applyParams();
-		$this->prepareData();
-		return $this->data;
-	}
 	
 	private function applyParams()
 	{
 //		$this->attributes['__urlp']               = str_replace('$logid', $this->params['logid'], $this->attributes['__urlp']);
-		$this->attributes['tarball']               = $this->params['tarball'];
+		$this->attributes['tarball']              = $this->params['tarball'];
 		$this->attributes['tab-time']             = $this->params['tab-time'];
 		$this->attributes['id']                   = $this->params['id'];
 		$this->attributes['token']                = $this->params['token'];
@@ -108,26 +109,93 @@ class Message
 	
 	private function prepareData()
 	{
-		$this->data = [];
+		$this->data                           = [];
+		$this->attributes['attaches']['list'] = [];
+		foreach ($this->files as $name => $file) {
+			$data                                   = $file->getAttachData();
+			$this->attributes['attaches']['list'][] = $data;
+			if ($data['type'] == 'inline') {
+				$this->attributes['body']['html'] = $this->replaceImageTag($this->attributes['body']['html'], $name, $data);
+			}
+		}
 		foreach ($this->attributes as $k => $v) {
 			$this->data[$k] = in_array($k, $this->toJson) ? json_encode($v) : $v;
 		}
 	}
 	
-	public function to(string $email) {
-		$name = explode('@', $email);
-		$to = $name[0].' <'.$email.'>';
+	private function replaceImageTag($html, $name, $data)
+	{
+		$replace = '<img id="' . genStr(22, 1, 1, 1) . '" alt="" style="" src="cid:' . $data['content_id'] . '">';
+		$needle  = '$image[' . $name . ']';
+		$html    = str_replace($needle, $replace, $html);
+		return $html;
+	}
+	
+	public function getData()
+	{
+		$this->prepareData();
+		return $this->data;
+	}
+	
+	public function to(string $email)
+	{
+		$name               = explode('@', $email);
+		$to                 = $name[0] . ' <' . $email . '>';
 		$this->params['to'] = $to;
 		return $this;
 	}
 	
-	public function message(string $msg) {
+	public function message(string $msg)
+	{
 		$this->params['body'] = $msg;
 		return $this;
 	}
 	
-	public function subject(string $subject) {
+	public function subject(string $subject)
+	{
 		$this->params['subject'] = $subject;
 		return $this;
 	}
+	
+	
+	public function queryParams()
+	{
+		return [
+			'email'       => $this->attributes['email'],
+			'htmlencoded' => $this->attributes['htmlencoded'],
+			'rnd'         => mtime(),
+			'message_id'  => $this->attributes['id'],
+			'token'       => $this->attributes['token'],
+		];
+	}
+	
+	public function addFile(string $file)
+	{
+		try {
+			$file          = new File($this, $file);
+			$this->files[] = $file;
+			return $this;
+		} catch (Error $e) {
+			return false;
+		}
+	}
+	
+	public function addImage(string $file, string $name)
+	{
+		try {
+			$file               = new File($this, $file, true);
+			$this->files[$name] = $file;
+			return $this;
+		} catch (Error $e) {
+			return false;
+		}
+	}
+	
+	
+	public function getFiles()
+	{
+		return $this->files;
+	}
+	
+	
 }
