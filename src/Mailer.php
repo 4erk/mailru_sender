@@ -44,6 +44,7 @@ class Mailer
 	{
 		$this->cookie = new FileCookieJar(__DIR__ . '/../cookie/'. $login.md5($login.':'.$pass).'.cookie');
 		$this->client = new Client(['cookies' => $this->cookie]);
+		$this->login = $login;
 
 		if ($this->checkAuth()==false) {
 			$this->addLog('New Auth', [$login,$pass]);

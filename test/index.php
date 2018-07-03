@@ -14,4 +14,6 @@ $msg->to('mr4erk@gmail.com')
 $msg->addImage(__DIR__ . '/testfile.png','testimage');
 $mailer->sendMessage($msg);
 
+print_r($mailer->log);
+print_r($mailer->errors);
 

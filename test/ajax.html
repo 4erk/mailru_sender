@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test ajax</title>
+    <script src="jquery.js"></script>
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+</head>
+<body>
+<div class="container">
+    <h1> Test ajax</h1>
+    <form id="ajax-form" class="row">
+        <div class="col-6">
+            <label>Login</label>
+            <input class="form-control" name="auth[login]"/>
+        </div>
+        <div class="col-6">
+            <label>Password</label>
+            <input class="form-control" name="auth[pass]"/>
+        </div>
+        <div class="col-12">
+            <label>Recepient</label>
+            <input class="form-control" name="data[email]"/>
+        </div>
+        <div class="col-12">
+            <label>Subject</label>
+            <input class="form-control" name="data[subject]"/>
+        </div>
+        <div class="col-12">
+            <label>Message</label>
+            <textarea class="form-control" name="data[message]"></textarea>
+        </div>
+        <div class="col-6">
+            <label>File</label>
+            <input class="form-control" name="data[files][0][file]"/>
+        </div>
+        <div class="col-3">
+            <label>Type</label>
+            <select class="form-control" name="data[files][0][type]">
+                <option>attach</option>
+                <option>inline</option>
+            </select>
+        </div>
+        <div class="col-3">
+            <label>Name</label>
+            <input class="form-control" name="data[files][0][name]"/>
+        </div>
+        <div class="col-12">
+            <br>
+            <input class="btn btn-dark" type="submit" value="Submit"/>
+        </div>
+    </form>
+    <div>
+        <label>Result:</label>
+        <pre id="result" class="alert-info"></pre>
+    </div>
+</div>
+
+<script>
+    form = $('#ajax-form');
+    form.on('submit', function (event) {
+        event.preventDefault();
+        data = $(this).serialize();
+        $.ajax({
+            url: '../api/',
+            data: data,
+            method: 'POST',
+            success: function (data) {
+                $('#result').text(data);
+            }
+        });
+        return false;
+    })
+</script>
+</body>
+</html>
