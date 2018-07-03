@@ -125,7 +125,10 @@ class Message
 	
 	private function replaceImageTag($html, $name, $data)
 	{
-		$replace = '<img id="' . genStr(22, 1, 1, 1) . '" alt="" style="" src="cid:' . $data['content_id'] . '">';
+		//  <br>test test<img id=\"id54b63bb8-fe95-5767-a9d1-ef44aab15410\" alt=\"\" style=\"\" src=\"cid:lbTq@KiBwMirp.0eZyFEIK\" data-mce-src=\"\">
+		$img_id = 'id'.genHex(4).'-'.genHex(2).'-'.genHex(2).'-'.genHex(6);
+		$cid =
+		$replace = '<img id="' . $img_id . '" alt="" style="" src="cid:' . $data['content_id'] . '">';
 		$needle  = '{$' . $name . '}';
 		$html    = str_replace($needle, $replace, $html);
 		return $html;

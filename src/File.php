@@ -78,7 +78,7 @@ class File
 				'id' => $data['body']['attach']['id'],
 				'type' => $this->isEmbed ? 'inline': 'attach',
 			];
-			if ($this->isEmbed) $file['content_id'] = genStr(22,1,1,1);
+			if ($this->isEmbed) $file['content_id'] = genStr(4,1,1,1).'@'.genStr('8',1,1,1).'.'.genStr('8',1,1,1);
 			$this->attach_data = $file;
 		}
 		return $this;
